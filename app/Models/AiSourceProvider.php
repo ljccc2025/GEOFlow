@@ -9,6 +9,10 @@ class AiSourceProvider extends Model
 {
     public const PROVIDER_DOUBAO_SEARCH_CUSTOM = 'doubao_search_custom';
 
+    public const PROVIDER_PERPLEXITY_SEARCH = 'perplexity_search';
+
+    public const PROVIDER_OPENAI_WEB_SEARCH = 'openai_web_search';
+
     protected $hidden = [
         'api_key',
     ];

@@ -26,7 +26,17 @@ class AiVisibilityRun extends Model
 
     public const PROVIDER_COMPETITOR_DETECTION = 'competitor_detection';
 
-    public const SAMPLE_PROVIDERS = [self::PROVIDER_DEEPSEEK_ANALYSIS, self::PROVIDER_DOUBAO_ARK_RESPONSES, self::PROVIDER_DOUBAO_SEARCH_CUSTOM];
+    public const PROVIDER_PERPLEXITY_SEARCH = 'perplexity_search';
+
+    public const PROVIDER_OPENAI_WEB_SEARCH = 'openai_web_search';
+
+    public const SAMPLE_PROVIDERS = [
+        self::PROVIDER_DEEPSEEK_ANALYSIS,
+        self::PROVIDER_DOUBAO_ARK_RESPONSES,
+        self::PROVIDER_DOUBAO_SEARCH_CUSTOM,
+        self::PROVIDER_PERPLEXITY_SEARCH,
+        self::PROVIDER_OPENAI_WEB_SEARCH,
+    ];
 
     protected $fillable = [
         'parent_run_id',

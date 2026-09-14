@@ -10,6 +10,16 @@ final class AiProviderEndpointPolicy
     private const MODEL_HOSTS = [
         'ark' => ['volces.com'],
         'deepseek' => ['deepseek.com'],
+        'openai' => ['openai.com'],
+    ];
+
+    /**
+     * @var list<string>
+     */
+    private const SEARCH_HOSTS = [
+        'feedcoopapi.com',
+        'perplexity.ai',
+        'openai.com',
     ];
 
     public function acceptsModelApi(string $bindingType, string $url): bool
@@ -21,7 +31,7 @@ final class AiProviderEndpointPolicy
 
     public function acceptsSearchApi(string $url): bool
     {
-        return $this->isTrustedHttpsUrl($url, ['feedcoopapi.com']);
+        return $this->isTrustedHttpsUrl($url, self::SEARCH_HOSTS);
     }
 
     public function sameOrigin(string $firstUrl, string $secondUrl): bool

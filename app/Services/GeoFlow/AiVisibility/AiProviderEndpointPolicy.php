@@ -10,7 +10,6 @@ final class AiProviderEndpointPolicy
     private const MODEL_HOSTS = [
         'ark' => ['volces.com'],
         'deepseek' => ['deepseek.com'],
-        'openai' => ['openai.com'],
     ];
 
     /**
@@ -18,8 +17,8 @@ final class AiProviderEndpointPolicy
      */
     private const SEARCH_HOSTS = [
         'feedcoopapi.com',
-        'perplexity.ai',
-        'openai.com',
+        'api.perplexity.ai',
+        'api.openai.com',
     ];
 
     public function acceptsModelApi(string $bindingType, string $url): bool

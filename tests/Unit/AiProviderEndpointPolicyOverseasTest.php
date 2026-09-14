@@ -48,4 +48,11 @@ class AiProviderEndpointPolicyOverseasTest extends TestCase
             (new AiProviderEndpointPolicy)->acceptsSearchApi('https://user:pass@api.openai.com/v1/responses')
         );
     }
+
+    public function test_it_rejects_non_api_subdomain_of_perplexity(): void
+    {
+        $this->assertFalse(
+            (new AiProviderEndpointPolicy)->acceptsSearchApi('https://evil.perplexity.ai/x')
+        );
+    }
 }

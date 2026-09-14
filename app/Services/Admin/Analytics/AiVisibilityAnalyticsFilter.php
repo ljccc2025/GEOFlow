@@ -18,12 +18,7 @@ class AiVisibilityAnalyticsFilter
             : '60d';
         [$dateFrom, $dateTo] = self::resolveDates($input, $preset);
         $provider = (string) ($input['ai_provider'] ?? 'all');
-        if (! in_array($provider, [
-            'all',
-            AiVisibilityRun::PROVIDER_DOUBAO_ARK_RESPONSES,
-            AiVisibilityRun::PROVIDER_DOUBAO_SEARCH_CUSTOM,
-            AiVisibilityRun::PROVIDER_DEEPSEEK_ANALYSIS,
-        ], true)) {
+        if (! in_array($provider, ['all', ...AiVisibilityRun::SAMPLE_PROVIDERS], true)) {
             $provider = 'all';
         }
 

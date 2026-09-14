@@ -3092,6 +3092,8 @@ return [
                 'doubao_ark_responses' => 'Doubao Ark Responses',
                 'doubao_search_custom' => 'Doubao Search',
                 'deepseek_analysis' => 'DeepSeek Analysis',
+                'perplexity_search' => 'Perplexity Search',
+                'openai_web_search' => 'OpenAI Web Search',
             ],
             'kpi' => [
                 'brand_visibility' => 'Brand visibility',

@@ -3140,6 +3140,8 @@ return [
                 'doubao_ark_responses' => '豆包 Ark Responses',
                 'doubao_search_custom' => '豆包搜索',
                 'deepseek_analysis' => 'DeepSeek 分析',
+                'perplexity_search' => 'Perplexity 搜索',
+                'openai_web_search' => 'OpenAI 网页搜索',
             ],
             'kpi' => [
                 'brand_visibility' => '品牌可见率',

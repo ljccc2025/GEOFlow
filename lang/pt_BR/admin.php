@@ -5566,6 +5566,8 @@ return array_replace_recursive($base, [
                 'doubao_ark_responses' => 'Doubao Ark Responses',
                 'doubao_search_custom' => 'Busca Doubao',
                 'deepseek_analysis' => 'Análise DeepSeek',
+                'perplexity_search' => 'Busca Perplexity',
+                'openai_web_search' => 'Busca na Web OpenAI',
             ],
             'kpi' => [
                 'brand_visibility' => 'Visibilidade da marca',

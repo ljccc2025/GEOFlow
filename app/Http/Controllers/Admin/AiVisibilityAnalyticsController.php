@@ -44,11 +44,7 @@ class AiVisibilityAnalyticsController extends Controller
                 'keywords' => Schema::hasTable('ai_visibility_runs')
                     ? AiVisibilityRun::query()->whereIn('provider_type', AiVisibilityRun::SAMPLE_PROVIDERS)->whereNotNull('keyword')->where('keyword', '!=', '')->distinct()->orderBy('keyword')->limit(1000)->pluck('keyword')
                     : collect(),
-                'providers' => [
-                    AiVisibilityRun::PROVIDER_DOUBAO_ARK_RESPONSES,
-                    AiVisibilityRun::PROVIDER_DOUBAO_SEARCH_CUSTOM,
-                    AiVisibilityRun::PROVIDER_DEEPSEEK_ANALYSIS,
-                ],
+                'providers' => AiVisibilityRun::SAMPLE_PROVIDERS,
             ],
             'aiVisibilityOverview' => $this->analytics->overview($filter),
             'keywordLibraries' => $this->keywordLibraries(),

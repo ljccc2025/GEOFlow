@@ -2,11 +2,33 @@
 
 namespace Tests\Unit;
 
+use App\Models\AiSourceProvider;
 use App\Models\AiVisibilityRun;
 use PHPUnit\Framework\TestCase;
 
 class AiVisibilitySampleProvidersTest extends TestCase
 {
+    public function test_sample_providers_hold_exactly_five_unique_engines(): void
+    {
+        $this->assertCount(5, AiVisibilityRun::SAMPLE_PROVIDERS);
+        $this->assertCount(
+            count(AiVisibilityRun::SAMPLE_PROVIDERS),
+            array_unique(AiVisibilityRun::SAMPLE_PROVIDERS),
+        );
+    }
+
+    public function test_source_provider_constants_match_visibility_run_constants(): void
+    {
+        $this->assertSame(
+            AiVisibilityRun::PROVIDER_PERPLEXITY_SEARCH,
+            AiSourceProvider::PROVIDER_PERPLEXITY_SEARCH,
+        );
+        $this->assertSame(
+            AiVisibilityRun::PROVIDER_OPENAI_WEB_SEARCH,
+            AiSourceProvider::PROVIDER_OPENAI_WEB_SEARCH,
+        );
+    }
+
     public function test_it_includes_overseas_engines_in_sample_providers(): void
     {
         $this->assertContains(AiVisibilityRun::PROVIDER_PERPLEXITY_SEARCH, AiVisibilityRun::SAMPLE_PROVIDERS);

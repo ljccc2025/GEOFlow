@@ -15,8 +15,10 @@ final class AiVisibilityConfigurationResolver
 
     public const DEEPSEEK_MODEL_SETTING_KEY = 'ai_visibility_deepseek_analysis_model_id';
 
+    // 后台 site_settings 中配置 Perplexity 引擎信源主键的键名（供后续采集任务读取）
     public const PERPLEXITY_PROVIDER_SETTING_KEY = 'ai_visibility_perplexity_provider_id';
 
+    // 后台 site_settings 中配置 OpenAI 引擎信源主键的键名（供后续采集任务读取）
     public const OPENAI_PROVIDER_SETTING_KEY = 'ai_visibility_openai_provider_id';
 
     public function __construct(

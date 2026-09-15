@@ -15,25 +15,44 @@ final class AiVisibilityConfigurationResolver
 
     public const DEEPSEEK_MODEL_SETTING_KEY = 'ai_visibility_deepseek_analysis_model_id';
 
+    public const PERPLEXITY_PROVIDER_SETTING_KEY = 'ai_visibility_perplexity_provider_id';
+
+    public const OPENAI_PROVIDER_SETTING_KEY = 'ai_visibility_openai_provider_id';
+
     public function __construct(
         private readonly AiProviderEndpointPolicy $endpointPolicy,
     ) {}
 
-    public function searchProvider(SystemAiIdentity $identity): ?AiSourceProvider
+    /**
+     * @param  string|null  $providerKey  为 null 时沿用既有的豆包搜索信源（向后兼容）
+     */
+    public function searchProvider(SystemAiIdentity $identity, ?string $providerKey = null): ?AiSourceProvider
     {
         $identity->assertCanResolveVisibilityConfiguration();
         if (! Schema::hasTable('ai_source_providers')) {
             return null;
         }
 
+        $providerKey ??= AiSourceProvider::PROVIDER_DOUBAO_SEARCH_CUSTOM;
+
         return AiSourceProvider::query()
-            ->where('provider_key', AiSourceProvider::PROVIDER_DOUBAO_SEARCH_CUSTOM)
+            ->where('provider_key', $providerKey)
             ->where('status', 'active')
             ->orderBy('id')
             ->get()
             ->first(fn (AiSourceProvider $provider): bool => $this->endpointPolicy
                 ->acceptsSearchApi((string) ($provider->endpoint_url ?? ''))
                 && $this->hasStoredApiKey($provider));
+    }
+
+    public function perplexityProvider(SystemAiIdentity $identity): ?AiSourceProvider
+    {
+        return $this->searchProvider($identity, AiSourceProvider::PROVIDER_PERPLEXITY_SEARCH);
+    }
+
+    public function openAiProvider(SystemAiIdentity $identity): ?AiSourceProvider
+    {
+        return $this->searchProvider($identity, AiSourceProvider::PROVIDER_OPENAI_WEB_SEARCH);
     }
 
     public function arkModel(SystemAiIdentity $identity): ?AiModel

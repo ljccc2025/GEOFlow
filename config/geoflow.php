@@ -309,6 +309,8 @@ return [
         'http_retry_sleep_ms' => max(0, (int) env('GEOFLOW_AI_VISIBILITY_HTTP_RETRY_SLEEP_MS', 300)),
         'doubao_search_endpoint' => env('GEOFLOW_DOUBAO_SEARCH_ENDPOINT', 'https://open.feedcoopapi.com/search_api/web_search'),
         'ark_responses_path' => env('GEOFLOW_ARK_RESPONSES_PATH', '/responses'),
+        'perplexity_endpoint' => env('GEOFLOW_PERPLEXITY_ENDPOINT', 'https://api.perplexity.ai/v1/sonar'),
+        'perplexity_model' => env('GEOFLOW_PERPLEXITY_MODEL', 'sonar'),
         'default_search_count' => max(1, min(20, (int) env('GEOFLOW_AI_VISIBILITY_SEARCH_COUNT', 10))),
         'default_analysis_max_tokens' => max(512, (int) env('GEOFLOW_AI_VISIBILITY_ANALYSIS_MAX_TOKENS', 4096)),
     ],

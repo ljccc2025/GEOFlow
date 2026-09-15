@@ -311,6 +311,8 @@ return [
         'ark_responses_path' => env('GEOFLOW_ARK_RESPONSES_PATH', '/responses'),
         'perplexity_endpoint' => env('GEOFLOW_PERPLEXITY_ENDPOINT', 'https://api.perplexity.ai/v1/sonar'),
         'perplexity_model' => env('GEOFLOW_PERPLEXITY_MODEL', 'sonar'),
+        'openai_endpoint' => env('GEOFLOW_OPENAI_ENDPOINT', 'https://api.openai.com/v1/responses'),
+        'openai_model' => env('GEOFLOW_OPENAI_MODEL', 'gpt-4o'),
         'default_search_count' => max(1, min(20, (int) env('GEOFLOW_AI_VISIBILITY_SEARCH_COUNT', 10))),
         'default_analysis_max_tokens' => max(512, (int) env('GEOFLOW_AI_VISIBILITY_ANALYSIS_MAX_TOKENS', 4096)),
     ],

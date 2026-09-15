@@ -23,6 +23,7 @@ final class AiVisibilityService
     public function __construct(
         private readonly DoubaoArkResponsesClient $doubaoArkResponsesClient,
         private readonly DoubaoSearchCustomClient $doubaoSearchCustomClient,
+        private readonly PerplexitySearchClient $perplexitySearchClient,
         private readonly DeepSeekAnalysisClient $deepSeekAnalysisClient,
         private readonly AiUsageQuotaService $usageQuota,
         private readonly AiProviderEndpointPolicy $endpointPolicy,
@@ -87,6 +88,45 @@ final class AiVisibilityService
                 throw new RuntimeException('ai_source_provider_quota_exhausted');
             }
             $result = $this->doubaoSearchCustomClient->search(
+                $provider,
+                $keyword,
+                array_replace($provider->visibilitySearchOptions(), $options),
+            );
+
+            return $this->completeRun($run, $result, providerReservation: $reservation);
+        } catch (Throwable $exception) {
+            if ($reservation !== null) {
+                $this->usageQuota->releaseProvider($reservation);
+            }
+            $errorCode = $this->safeErrorCode($exception);
+            $this->failRun($run, $errorCode);
+            throw new RuntimeException($errorCode);
+        }
+    }
+
+    /**
+     * @param  array<string,mixed>  $options
+     */
+    public function runPerplexitySearch(AiSourceProvider $provider, string $keyword, array $options = []): AiVisibilityRun
+    {
+        $keyword = $this->normalizeKeyword($keyword);
+        $run = $this->createRun([
+            'keyword' => $keyword,
+            'prompt' => (string) ($options['prompt'] ?? $keyword),
+            'provider_type' => AiVisibilityRun::PROVIDER_PERPLEXITY_SEARCH,
+            'provider_key' => (string) ($provider->provider_key ?? AiSourceProvider::PROVIDER_PERPLEXITY_SEARCH),
+            'ai_source_provider_id' => (int) $provider->id,
+            'locale' => (string) ($options['locale'] ?? 'en_US'),
+        ]);
+
+        $reservation = null;
+        try {
+            $this->assertSourceProviderEnabled($provider, 'Perplexity 信源供应商');
+            $reservation = $this->usageQuota->reserveProvider($provider);
+            if ($reservation === null) {
+                throw new RuntimeException('ai_source_provider_quota_exhausted');
+            }
+            $result = $this->perplexitySearchClient->search(
                 $provider,
                 $keyword,
                 array_replace($provider->visibilitySearchOptions(), $options),

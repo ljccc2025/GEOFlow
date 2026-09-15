@@ -133,7 +133,11 @@ final class AiVisibilityResultNormalizer
                 if (! is_array($choice)) {
                     continue;
                 }
-                $content = $this->stringValue($choice['message']['content'] ?? '');
+                $message = $choice['message'] ?? null;
+                if (! is_array($message)) {
+                    continue;
+                }
+                $content = $this->stringValue($message['content'] ?? '');
                 if ($content !== '') {
                     $segments[] = $content;
                 }

@@ -128,4 +128,37 @@ class AiVisibilityResultNormalizerTest extends TestCase
         $this->assertSame('', $result->answerText);
         $this->assertSame([], $result->sources);
     }
+
+    public function test_it_normalizes_openai_web_search_annotations(): void
+    {
+        $result = (new AiVisibilityResultNormalizer)->normalizeOpenAiWebSearch([
+            'id' => 'resp_openai_1',
+            'output' => [
+                ['type' => 'web_search_call', 'id' => 'ws_1', 'status' => 'completed', 'action' => ['query' => 'earplug factory china']],
+                ['type' => 'message', 'content' => [[
+                    'type' => 'output_text',
+                    'text' => 'We recommend A Corp.',
+                    'annotations' => [['type' => 'url_citation', 'title' => 'A Corp', 'url' => 'https://example.com/a']],
+                ]]],
+            ],
+        ], ['model' => 'gpt-4o'], 88);
+
+        $this->assertSame(AiVisibilityRun::PROVIDER_OPENAI_WEB_SEARCH, $result->providerType);
+        $this->assertSame('We recommend A Corp.', $result->answerText);
+        $this->assertCount(1, $result->sources);
+        $this->assertSame(88, $result->latencyMs);
+    }
+
+    public function test_ark_and_openai_share_the_same_parser_but_differ_in_provider_identity(): void
+    {
+        $normalizer = new AiVisibilityResultNormalizer;
+        $payload = ['output' => [['type' => 'message', 'content' => [['type' => 'output_text', 'text' => 'X']]]]];
+
+        $ark = $normalizer->normalizeArkResponses($payload, [], 'ark-model', 1);
+        $openai = $normalizer->normalizeOpenAiWebSearch($payload, [], 1);
+
+        $this->assertSame('X', $ark->answerText);
+        $this->assertSame('X', $openai->answerText);
+        $this->assertNotSame($ark->providerType, $openai->providerType);
+    }
 }

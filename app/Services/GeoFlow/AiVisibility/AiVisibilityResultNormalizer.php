@@ -202,6 +202,33 @@ final class AiVisibilityResultNormalizer
      * @param  array<string,mixed>  $response
      * @param  array<string,mixed>  $request
      */
+    public function normalizeOpenAiWebSearch(array $response, array $request, int $latencyMs): AiVisibilityResult
+    {
+        $parsed = $this->parseResponsesPayload($response);
+
+        return new AiVisibilityResult(
+            providerType: AiVisibilityRun::PROVIDER_OPENAI_WEB_SEARCH,
+            providerKey: AiSourceProvider::PROVIDER_OPENAI_WEB_SEARCH,
+            modelId: $this->stringValue($request['model'] ?? ''),
+            answerText: $parsed['segments'] === []
+                ? $this->stringValue($response['output_text'] ?? '')
+                : trim(implode("\n\n", $parsed['segments'])),
+            sources: $parsed['sources'],
+            usage: is_array($response['usage'] ?? null) ? $response['usage'] : [],
+            metadata: array_filter([
+                'response_id' => $parsed['response_id'],
+                'web_search_calls' => $parsed['web_search_calls'],
+            ], static fn (mixed $value): bool => $value !== null && $value !== '' && $value !== []),
+            rawRequest: $request,
+            rawResponse: $response,
+            latencyMs: $latencyMs,
+        );
+    }
+
+    /**
+     * @param  array<string,mixed>  $response
+     * @param  array<string,mixed>  $request
+     */
     public function normalizeDoubaoSearchCustom(array $response, array $request, int $latencyMs): AiVisibilityResult
     {
         $result = is_array($response['Result'] ?? null) ? $response['Result'] : [];

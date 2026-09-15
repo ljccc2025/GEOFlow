@@ -4,13 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\AiSourceProvider;
 use App\Models\AiVisibilityRun;
-use App\Services\GeoFlow\AiVisibility\AiVisibilityResult;
 use App\Services\GeoFlow\AiVisibility\AiVisibilityService;
-use App\Services\GeoFlow\AiVisibility\AiVisibilitySourceData;
-use App\Services\GeoFlow\AiVisibility\PerplexitySearchClient;
 use App\Support\GeoFlow\ApiKeyCrypto;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Mockery;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class AiVisibilityPerplexityRunTest extends TestCase
@@ -19,35 +16,34 @@ class AiVisibilityPerplexityRunTest extends TestCase
 
     public function test_it_records_a_perplexity_run(): void
     {
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://api.perplexity.ai/v1/sonar' => Http::response([
+                'id' => 'pplx-1',
+                'model' => 'sonar',
+                'choices' => [['message' => ['role' => 'assistant', 'content' => '推荐 A 公司。']]],
+                'citations' => ['https://example.com/a'],
+                'search_results' => [['title' => 'A 公司官网', 'url' => 'https://example.com/a', 'date' => '2026-01-01']],
+                'usage' => ['total_tokens' => 42],
+            ], 200),
+        ]);
+
         $provider = $this->createPerplexityProvider();
 
-        $client = Mockery::mock(PerplexitySearchClient::class);
-        $client->shouldReceive('search')->once()->andReturn(new AiVisibilityResult(
-            providerType: AiVisibilityRun::PROVIDER_PERPLEXITY_SEARCH,
-            providerKey: AiSourceProvider::PROVIDER_PERPLEXITY_SEARCH,
-            modelId: 'sonar',
-            answerText: '推荐 A 公司。',
-            sources: [new AiVisibilitySourceData(
-                sourceType: 'perplexity_citation',
-                url: 'https://example.com/a',
-                title: 'A',
-                publishedAt: null,
-                rank: 1,
-            )],
-            usage: [],
-            metadata: [],
-            rawRequest: [],
-            rawResponse: [],
-            latencyMs: 12,
-        ));
-
-        $this->app->instance(PerplexitySearchClient::class, $client);
-
-        $run = $this->app->make(AiVisibilityService::class)->runPerplexitySearch($provider, '中国耳塞设计工厂');
+        $service = $this->app->make(AiVisibilityService::class);
+        $run = $service->runPerplexitySearch($provider, '中国耳塞设计工厂');
 
         $this->assertSame(AiVisibilityRun::STATUS_COMPLETED, $run->status);
         $this->assertSame('推荐 A 公司。', $run->answer_text);
         $this->assertDatabaseHas('ai_visibility_sources', ['url' => 'https://example.com/a']);
+        $this->assertSame(1, $run->sources()->count());
+
+        Http::assertSent(fn ($request): bool => $request->url() === 'https://api.perplexity.ai/v1/sonar'
+            && ($request['model'] ?? null) === 'sonar'
+            && ($request['messages'][0]['content'] ?? null) === '中国耳塞设计工厂'
+            && $request->hasHeader('Authorization', 'Bearer test-perplexity-key'));
+
+        $this->assertSame(1, (int) $provider->fresh()->used_today);
     }
 
     private function createPerplexityProvider(): AiSourceProvider

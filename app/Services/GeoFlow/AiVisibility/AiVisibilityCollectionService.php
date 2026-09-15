@@ -26,6 +26,33 @@ final class AiVisibilityCollectionService
             throw new RuntimeException('AI 可见性关键词为空');
         }
 
+        $runs = [];
+
+        $perplexity = $this->configuration->perplexityProvider($identity);
+        if ($perplexity instanceof AiSourceProvider) {
+            $runs['perplexity_run'] = $this->visibility->runPerplexitySearch($perplexity, $keyword);
+        }
+
+        $openAi = $this->configuration->openAiProvider($identity);
+        if ($openAi instanceof AiSourceProvider) {
+            $runs['openai_run'] = $this->visibility->runOpenAiWebSearch($openAi, $keyword);
+        }
+
+        // 两个海外引擎都未配置时，回落既有国内链路（豆包 / DeepSeek），保持既有部署行为不变
+        if ($runs === []) {
+            return $this->collectDomestic($identity, $keyword);
+        }
+
+        return $runs;
+    }
+
+    /**
+     * 既有的豆包 / DeepSeek 采集链路，原样抽出为私有方法，行为不变。
+     *
+     * @return array<string, AiVisibilityRun>
+     */
+    private function collectDomestic(SystemAiIdentity $identity, string $keyword): array
+    {
         $provider = $this->configuration->searchProvider($identity);
         $deepSeek = $this->configuration->deepSeekModel($identity);
         if ($provider instanceof AiSourceProvider && $deepSeek instanceof AiModel) {

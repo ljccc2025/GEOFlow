@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Models\AiVisibilityRun;
 use App\Services\GeoFlow\AiVisibility\AiVisibilityResultNormalizer;
 use PHPUnit\Framework\TestCase;
 
@@ -81,5 +82,50 @@ class AiVisibilityResultNormalizerTest extends TestCase
         $this->assertSame('web_search_result', $result->sources[0]->sourceType);
         $this->assertSame('example.com', $result->sources[0]->domain);
         $this->assertSame(0.98, $result->sources[0]->rankScore);
+    }
+
+    public function test_it_normalizes_perplexity_chat_completions_with_citations(): void
+    {
+        $result = (new AiVisibilityResultNormalizer)->normalizePerplexity([
+            'id' => 'pplx-123',
+            'model' => 'sonar',
+            'choices' => [[
+                'index' => 0,
+                'message' => ['role' => 'assistant', 'content' => '我们推荐 A 公司。'],
+                'finish_reason' => 'stop',
+            ]],
+            'citations' => ['https://example.com/a'],
+            'search_results' => [[
+                'title' => 'A 公司官网',
+                'url' => 'https://example.com/a',
+                'date' => '2026-01-01',
+            ]],
+            'usage' => ['total_tokens' => 42],
+        ], ['model' => 'sonar'], 123);
+
+        $this->assertSame(AiVisibilityRun::PROVIDER_PERPLEXITY_SEARCH, $result->providerType);
+        $this->assertSame('我们推荐 A 公司。', $result->answerText);
+        $this->assertCount(1, $result->sources);
+        $this->assertSame('https://example.com/a', $result->sources[0]->url);
+        $this->assertSame(123, $result->latencyMs);
+    }
+
+    public function test_it_deduplicates_perplexity_citations_and_search_results(): void
+    {
+        $result = (new AiVisibilityResultNormalizer)->normalizePerplexity([
+            'choices' => [['message' => ['content' => '答案']]],
+            'citations' => ['https://example.com/a'],
+            'search_results' => [['title' => 'A', 'url' => 'https://example.com/a']],
+        ], [], 10);
+
+        $this->assertCount(1, $result->sources, '同一 URL 出现在 citations 与 search_results 时只应保留一条信源。');
+    }
+
+    public function test_it_returns_empty_answer_when_perplexity_payload_has_no_content(): void
+    {
+        $result = (new AiVisibilityResultNormalizer)->normalizePerplexity([], [], 5);
+
+        $this->assertSame('', $result->answerText);
+        $this->assertSame([], $result->sources);
     }
 }

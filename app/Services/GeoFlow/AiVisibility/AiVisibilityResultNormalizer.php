@@ -2,6 +2,7 @@
 
 namespace App\Services\GeoFlow\AiVisibility;
 
+use App\Models\AiSourceProvider;
 use App\Models\AiVisibilityRun;
 use Carbon\CarbonImmutable;
 use Throwable;
@@ -13,6 +14,42 @@ final class AiVisibilityResultNormalizer
      * @param  array<string,mixed>  $request
      */
     public function normalizeArkResponses(array $response, array $request, string $modelId, int $latencyMs): AiVisibilityResult
+    {
+        $parsed = $this->parseResponsesPayload($response);
+
+        $fallbackText = $this->stringValue($response['output_text'] ?? '');
+        $answerText = trim(implode("\n\n", array_filter($parsed['segments'], static fn (string $segment): bool => trim($segment) !== '')));
+        if ($answerText === '' && $fallbackText !== '') {
+            $answerText = $fallbackText;
+        }
+
+        $usage = is_array($response['usage'] ?? null) ? $response['usage'] : [];
+
+        return new AiVisibilityResult(
+            providerType: AiVisibilityRun::PROVIDER_DOUBAO_ARK_RESPONSES,
+            providerKey: 'doubao_ark',
+            modelId: $modelId,
+            answerText: $answerText,
+            sources: $parsed['sources'],
+            usage: $usage,
+            metadata: array_filter([
+                'response_id' => $parsed['response_id'],
+                'web_search_calls' => $parsed['web_search_calls'],
+                'tool_usage' => is_array($usage['tool_usage'] ?? null) ? $usage['tool_usage'] : null,
+            ], static fn (mixed $value): bool => $value !== null && $value !== '' && $value !== []),
+            rawRequest: $request,
+            rawResponse: $response,
+            latencyMs: $latencyMs,
+        );
+    }
+
+    /**
+     * 解析 OpenAI Responses 形状的载荷（Ark 与 OpenAI 官方同构）。
+     *
+     * @param  array<string,mixed>  $response
+     * @return array{segments: list<string>, sources: list<AiVisibilitySourceData>, web_search_calls: list<array<string,mixed>>, response_id: string}
+     */
+    private function parseResponsesPayload(array $response): array
     {
         $answerSegments = [];
         $sources = [];
@@ -75,26 +112,82 @@ final class AiVisibilityResultNormalizer
             }
         }
 
-        $fallbackText = $this->stringValue($response['output_text'] ?? '');
-        $answerText = trim(implode("\n\n", array_filter($answerSegments, static fn (string $segment): bool => trim($segment) !== '')));
-        if ($answerText === '' && $fallbackText !== '') {
-            $answerText = $fallbackText;
+        return [
+            'segments' => $answerSegments,
+            'sources' => $sources,
+            'web_search_calls' => $webSearchCalls,
+            'response_id' => $this->stringValue($response['id'] ?? ''),
+        ];
+    }
+
+    /**
+     * @param  array<string,mixed>  $response
+     * @param  array<string,mixed>  $request
+     */
+    public function normalizePerplexity(array $response, array $request, int $latencyMs): AiVisibilityResult
+    {
+        $segments = [];
+        $choices = $response['choices'] ?? [];
+        if (is_array($choices)) {
+            foreach ($choices as $choice) {
+                if (! is_array($choice)) {
+                    continue;
+                }
+                $content = $this->stringValue($choice['message']['content'] ?? '');
+                if ($content !== '') {
+                    $segments[] = $content;
+                }
+            }
         }
 
-        $usage = is_array($response['usage'] ?? null) ? $response['usage'] : [];
+        $sources = [];
+        $searchResults = $response['search_results'] ?? [];
+        if (is_array($searchResults)) {
+            foreach ($searchResults as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+                $url = $this->stringValue($item['url'] ?? '');
+                if ($url === '') {
+                    continue;
+                }
+                $sources = $this->appendUniqueSource($sources, new AiVisibilitySourceData(
+                    sourceType: 'perplexity_citation',
+                    url: $url,
+                    title: $this->stringValue($item['title'] ?? ''),
+                    publishedAt: $this->parsePublishedAt($item['date'] ?? null),
+                    rank: count($sources) + 1,
+                ));
+            }
+        }
+
+        $citations = $response['citations'] ?? [];
+        if (is_array($citations)) {
+            foreach ($citations as $citation) {
+                $url = $this->stringValue(is_string($citation) ? $citation : ($citation['url'] ?? ''));
+                if ($url === '') {
+                    continue;
+                }
+                $sources = $this->appendUniqueSource($sources, new AiVisibilitySourceData(
+                    sourceType: 'perplexity_citation',
+                    url: $url,
+                    title: '',
+                    publishedAt: null,
+                    rank: count($sources) + 1,
+                ));
+            }
+        }
 
         return new AiVisibilityResult(
-            providerType: AiVisibilityRun::PROVIDER_DOUBAO_ARK_RESPONSES,
-            providerKey: 'doubao_ark',
-            modelId: $modelId,
-            answerText: $answerText,
+            providerType: AiVisibilityRun::PROVIDER_PERPLEXITY_SEARCH,
+            providerKey: AiSourceProvider::PROVIDER_PERPLEXITY_SEARCH,
+            modelId: $this->stringValue($response['model'] ?? ''),
+            answerText: trim(implode("\n\n", array_filter($segments, static fn (string $s): bool => trim($s) !== ''))),
             sources: $sources,
-            usage: $usage,
+            usage: is_array($response['usage'] ?? null) ? $response['usage'] : [],
             metadata: array_filter([
                 'response_id' => $this->stringValue($response['id'] ?? ''),
-                'web_search_calls' => $webSearchCalls,
-                'tool_usage' => is_array($usage['tool_usage'] ?? null) ? $usage['tool_usage'] : null,
-            ], static fn (mixed $value): bool => $value !== null && $value !== '' && $value !== []),
+            ], static fn (mixed $value): bool => $value !== null && $value !== ''),
             rawRequest: $request,
             rawResponse: $response,
             latencyMs: $latencyMs,
